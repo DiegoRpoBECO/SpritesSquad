@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprite Vault — Collection Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #ffffff;
+    --bg-alt: #f4f4f9;
+    --surface: #f8f8fc;
+    --surface-hi: #ffffff;
+    --line: #e2e2ec;
+    --text: #17171f;
+    --text-dim: #55536e;
+    --text-faint: #8f8da8;
+
+    --base:   #667085;
+    --base-glow: rgba(102,112,133,.22);
+    --gold:   #c8891a;
+    --gold-glow: rgba(200,137,26,.22);
+    --gummy:  #e0409e;
+    --gummy-glow: rgba(224,64,158,.22);
+    --galaxy: #7c4fe0;
+    --galaxy-glow: rgba(124,79,224,.24);
+
+    --present: #17a34a;
+    --absent: #d6d5e2;
+    --warn: #c8891a;
+    --err: #d64545;
+
+    --ink: #17171f;
+    --paper: #fffdf6;
+    --shadow-hard: 4px 4px 0 var(--ink);
+    --shadow-hard-sm: 3px 3px 0 var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(rgba(23,23,31,.09) 1.4px, transparent 1.4px) 0 0/16px 16px,
+      radial-gradient(ellipse 900px 500px at 15% -10%, var(--galaxy-glow), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, var(--gummy-glow), transparent 55%),
+      var(--paper);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding-bottom:80px;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    padding:48px 24px 28px;
+    text-align:center;
+    border-bottom:3px solid var(--ink);
+    background:linear-gradient(180deg, rgba(255,253,246,.9), transparent);
+  }
+  .eyebrow{
+    font-family:'Bangers',cursive;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    font-size:14px;
+    color:var(--paper);
+    background:var(--galaxy);
+    border:2.5px solid var(--ink);
+    display:inline-block;
+    padding:4px 14px 2px;
+    border-radius:999px;
+    transform:rotate(-2deg);
+    box-shadow:var(--shadow-hard-sm);
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Bangers',cursive;
+    font-weight:400;
+    font-size:clamp(32px,7vw,58px);
+    line-height:1.15;
+    letter-spacing:.02em;
+    margin:0 0 12px;
+    color:var(--ink);
+    -webkit-text-stroke:1.5px var(--ink);
+    filter:drop-shadow(3px 3px 0 var(--gummy)) drop-shadow(6px 6px 0 var(--ink));
+  }
+  header p{
+    color:var(--text-dim);
+    font-size:14px;
+    max-width:560px;
+    margin:0 auto;
+  }
+
+  /* ---------- User tabs ---------- */
+  .user-bar{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:28px auto 0;
+    padding:0 20px;
+  }
+  .user-tab{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.05em;
+    padding:10px 20px;
+    background:var(--surface-hi);
+    border:2.5px solid var(--ink);
+    color:var(--text-dim);
+    border-radius:8px;
+    cursor:pointer;
+    transition:transform .1s ease, box-shadow .1s ease;
+    box-shadow:var(--shadow-hard-sm);
+    position:relative;
+  }
+  .user-tab:hover{ color:var(--text); transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); }
+  .user-tab.active{
+    color:#fff;
+    background:var(--galaxy);
+    transform:translate(2px,2px);
+    box-shadow:1px 1px 0 var(--ink);
+  }
+  .user-tab.active::after{
+    content:'';
+    position:absolute;
+    bottom:-9px; left:50%;
+    transform:translateX(-50%);
+    width:8px; height:8px;
+    background:var(--gummy);
+    border:1.5px solid var(--ink);
+    border-radius:50%;
+  }
+
+  /* ---------- Sync status ---------- */
+  .sync-bar{
+    display:flex;
+    justify-content:center;
+    margin:14px auto 0;
+  }
+  .sync-status{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    font-weight:600;
+    color:var(--text-faint);
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--absent); flex-shrink:0; }
+  .sync-status.synced .sync-dot{ background:var(--present); box-shadow:0 0 5px var(--present); }
+  .sync-status.saving .sync-dot{ background:var(--warn); animation:pulse 1s infinite ease-in-out; }
+  .sync-status.loading .sync-dot{ background:var(--warn); animation:pulse 1s infinite ease-in-out; }
+  .sync-status.offline .sync-dot{ background:var(--err); }
+  .sync-status.local .sync-dot{ background:var(--text-faint); }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    max-width:1100px;
+    margin:20px auto 0;
+    padding:0 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .stat-pill{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:var(--text-dim);
+    background:var(--surface-hi);
+    border:2.5px solid var(--ink);
+    padding:7px 14px;
+    border-radius:999px;
+    box-shadow:var(--shadow-hard-sm);
+  }
+  .stat-pill b{ color:var(--present); }
+  .actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:800;
+    color:var(--text);
+    background:var(--surface-hi);
+    border:2.5px solid var(--ink);
+    padding:8px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    box-shadow:var(--shadow-hard-sm);
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .btn:hover{ transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); background:var(--surface-hi); }
+  .btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+  input[type=file]{ display:none; }
+
+  /* ---------- Filter bar ---------- */
+  .filter-bar{
+    max-width:1100px;
+    margin:16px auto 0;
+    padding:0 20px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .filter-label{
+    font-family:'Bangers',cursive;
+    font-size:15px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink);
+    margin-right:2px;
+  }
+  .filter-btn{
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:800;
+    color:var(--text);
+    background:var(--surface-hi);
+    border:2.5px solid var(--ink);
+    padding:7px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow:var(--shadow-hard-sm);
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .filter-btn:hover{ transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); }
+  .filter-btn.active{
+    background:var(--gummy);
+    border-color:var(--ink);
+    color:#fff;
+    transform:translate(2px,2px);
+    box-shadow:1px 1px 0 var(--ink);
+  }
+  .filter-count{ opacity:.85; font-weight:600; }
+
+  .form-mode-toggle{
+    display:inline-flex;
+    border:2.5px solid var(--ink);
+    border-radius:999px;
+    overflow:hidden;
+    box-shadow:var(--shadow-hard-sm);
+    margin-left:4px;
+  }
+  .mode-btn{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    background:var(--surface-hi);
+    border:none;
+    padding:7px 14px;
+    cursor:pointer;
+  }
+  .mode-btn:first-child{ border-right:2.5px solid var(--ink); }
+  .mode-btn:hover{ color:var(--text); }
+  .mode-btn.active{ background:var(--galaxy); color:#fff; }
+
+  /* ---------- Legend ---------- */
+  .legend{
+    max-width:1100px;
+    margin:16px auto 0;
+    padding:0 20px;
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    align-items:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+    color:var(--text-dim);
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .legend .hint{ color:var(--text-faint); margin-left:auto; font-weight:500; }
+
+  /* ---------- Gallery table ---------- */
+  .gallery-wrap{
+    max-width:1100px;
+    margin:20px auto 0;
+    padding:0 20px;
+  }
+  table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0 14px;
+  }
+  thead th{
+    text-align:left;
+    font-family:'Bangers',cursive;
+    font-size:14px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink);
+    padding:0 14px 6px;
+    font-weight:400;
+  }
+  tbody tr{
+    background:var(--surface-hi);
+    border:2.5px solid var(--ink);
+    transition:transform .12s ease, box-shadow .12s ease;
+    box-shadow:var(--shadow-hard);
+  }
+  tbody tr.present{
+    box-shadow:5px 5px 0 var(--galaxy);
+  }
+  tbody tr:not(.present){ opacity:.72; }
+  tbody tr:hover{ transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--ink); }
+  tbody tr.present:hover{ box-shadow:7px 7px 0 var(--galaxy); }
+  tbody tr.hidden-row{ display:none; }
+  td{ padding:16px 14px; vertical-align:middle; border-top:2.5px solid var(--ink); border-bottom:2.5px solid var(--ink); }
+  td:first-child{ border-left:2.5px solid var(--ink); border-radius:10px 0 0 10px; }
+  td:last-child{ border-right:2.5px solid var(--ink); border-radius:0 10px 10px 0; }
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+  }
+
+  .char-cell{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:8px;
+    min-width:140px;
+  }
+  .icon-badge{
+    width:54px; height:54px;
+    border-radius:50%;
+    background:
+      radial-gradient(rgba(23,23,31,.12) 1.1px, transparent 1.1px) 0 0/8px 8px,
+      var(--bg-alt);
+    border:2.5px solid var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px;
+    flex-shrink:0;
+    overflow:hidden;
+    box-shadow:var(--shadow-hard-sm);
+  }
+  .icon-badge img{
+    width:78%; height:78%;
+    object-fit:contain;
+    image-rendering:pixelated;
+  }
+  .char-name{ font-family:'Bangers',cursive; font-weight:400; letter-spacing:.03em; font-size:19px; color:var(--ink); }
+  .char-sub{ font-size:10.5px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; font-weight:600; }
+
+  /* Type boxes — independent per type */
+  .type-boxes{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .type-box{
+    border:2.5px solid var(--ink);
+    background:var(--bg-alt);
+    border-radius:10px;
+    padding:10px 12px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    min-width:150px;
+    box-shadow:var(--shadow-hard-sm);
+    transition:border-color .15s ease, background .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .type-box[data-type="Base"].on{   background:rgba(102,112,133,.16); box-shadow:3px 3px 0 var(--base); }
+  .type-box[data-type="Gold"].on{   background:rgba(200,137,26,.16);  box-shadow:3px 3px 0 var(--gold); }
+  .type-box[data-type="Gummy"].on{  background:rgba(224,64,158,.16);  box-shadow:3px 3px 0 var(--gummy); }
+  .type-box[data-type="Galaxy"].on{ background:rgba(124,79,224,.17);  box-shadow:3px 3px 0 var(--galaxy); }
+  .type-box.on{ transform:translate(-1px,-1px); }
+
+  .type-box-head{ display:flex; align-items:center; justify-content:center; gap:7px; }
+  .type-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .type-box[data-type="Base"].on .type-label{ color:var(--base); }
+  .type-box[data-type="Gold"].on .type-label{ color:var(--gold); }
+  .type-box[data-type="Gummy"].on .type-label{ color:var(--gummy); }
+  .type-box[data-type="Galaxy"].on .type-label{ color:var(--galaxy); }
+
+  .caught-dot{
+    width:15px; height:15px;
+    border-radius:50%;
+    background:var(--absent);
+    border:1.5px solid var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px;
+    color:transparent;
+    flex-shrink:0;
+  }
+  .type-box[data-type="Base"].on .caught-dot{ background:var(--base); color:#fff; }
+  .type-box[data-type="Gold"].on .caught-dot{ background:var(--gold); color:#fff; }
+  .type-box[data-type="Gummy"].on .caught-dot{ background:var(--gummy); color:#fff; }
+  .type-box[data-type="Galaxy"].on .caught-dot{ background:var(--galaxy); color:#fff; }
+  .type-box.on .caught-dot::after{ content:'✓'; }
+
+  .level-pips{ display:flex; gap:5px; justify-content:center; }
+  .pip{
+    width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px; font-weight:800;
+    border-radius:6px;
+    border:1.5px solid var(--ink);
+    background:#fff;
+    color:var(--text-faint);
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  .pip:hover{ color:var(--text); transform:translate(-1px,-1px); }
+  .type-box[data-type="Base"] .pip.sel{ background:var(--base); color:#fff; border-color:var(--ink); }
+  .type-box[data-type="Gold"] .pip.sel{ background:var(--gold); color:#fff; border-color:var(--ink); }
+  .type-box[data-type="Gummy"] .pip.sel{ background:var(--gummy); color:#fff; border-color:var(--ink); }
+  .type-box[data-type="Galaxy"] .pip.sel{ background:var(--galaxy); color:#fff; border-color:var(--ink); }
+
+  footer{
+    max-width:1100px;
+    margin:40px auto 0;
+    padding:20px;
+    text-align:center;
+    color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+  }
+
+  @media (max-width: 780px){
+    table, thead, tbody, tr, td{ display:block; }
+    thead{ display:none; }
+    tbody tr{ padding:14px; margin-bottom:12px; }
+    td{ border:none !important; padding:8px 0; }
+    .char-cell{ margin-bottom:10px; }
+    .type-box{ min-width:calc(50% - 6px); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">☆ Collection Tracker ☆</div>
+  <h1>SPRITE VAULT</h1>
+  <p>Sixteen sprites, four independent forms each. Click a level in a box to catch that form — click it again to release it.</p>
+</header>
+
+<div class="user-bar" id="userBar"></div>
+<div class="sync-bar"><div class="sync-status local" id="syncStatus"><span class="sync-dot"></span><span id="syncText">Local only</span></div></div>
+
+<div class="toolbar">
+  <div class="stat-pill">Collected: <b id="statCount">0</b> / 64</div>
+  <div class="actions">
+    <button class="btn" id="refreshBtn">Refresh</button>
+    <button class="btn" id="exportBtn">Export JSON</button>
+    <button class="btn" id="importBtn">Import JSON</button>
+    <input type="file" id="importFile" accept="application/json">
+    <button class="btn" id="resetBtn">Reset user</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Show</span>
+  <button class="filter-btn active" data-filter="all">All <span class="filter-count" id="countAll"></span></button>
+  <button class="filter-btn" data-filter="caught">Caught <span class="filter-count" id="countCaught"></span></button>
+  <button class="filter-btn" data-filter="missing">Missing <span class="filter-count" id="countMissing"></span></button>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Form</span>
+  <button class="filter-btn active" data-form="all">All</button>
+  <button class="filter-btn" data-form="Base">Base <span class="filter-count" id="countFormBase"></span></button>
+  <button class="filter-btn" data-form="Gold">Gold <span class="filter-count" id="countFormGold"></span></button>
+  <button class="filter-btn" data-form="Gummy">Gummy <span class="filter-count" id="countFormGummy"></span></button>
+  <button class="filter-btn" data-form="Galaxy">Galaxy <span class="filter-count" id="countFormGalaxy"></span></button>
+  <span class="form-mode-toggle">
+    <button class="mode-btn active" data-mode="caught">Caught</button>
+    <button class="mode-btn" data-mode="missing">Missing</button>
+  </span>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--base)"></span>Base</span>
+  <span><span class="dot" style="background:var(--gold)"></span>Gold</span>
+  <span><span class="dot" style="background:var(--gummy)"></span>Gummy</span>
+  <span><span class="dot" style="background:var(--galaxy)"></span>Galaxy</span>
+  <span class="hint">Each form is caught and leveled independently</span>
+</div>
+
+<div class="gallery-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Sprite</th>
+        <th>Forms &amp; Levels</th>
+      </tr>
+    </thead>
+    <tbody id="galleryBody"></tbody>
+  </table>
+</div>
+
+<footer>
+  <span id="footerNote">Data is saved locally in this browser. Set CONFIG.API_URL in index.html to sync live via Google Sheets — see README.</span>
+</footer>
+
+<script>
+(function(){
+  // ---------------------------------------------------------------
+  // Paste your deployed Google Apps Script Web App URL here to make
+  // all 5 users share the same live data (see README / Code.gs).
+  // Leave it empty to keep using this browser's local storage only.
+  // ---------------------------------------------------------------
+  const CONFIG = {
+    API_URL: ""//"https://script.google.com/macros/s/AKfycbxqxYFk52SKWCofQskMJD0XlonOe7Em0CCnoE-2lhQYytFbz1i59n32FirJPUYimg85hw/exec"  e.g. "https://script.google.com/macros/s/AKfycb.../exec"
+  };
+
+  const USERS = ["Zedorek","Moky","Saade","DrPo","Joanina"];
+  const TYPES = ["Base","Gold","Gummy","Galaxy"];
+  const SPRITE_DIR = "sprites";
+  const SPRITES = [
+    { name:"Water" },
+    { name:"Earth" },
+    { name:"Fire" },
+    { name:"Duck" },
+    { name:"Ghost" },
+    { name:"Dream" },
+    { name:"Demon" },
+    { name:"Punk" },
+    { name:"King" },
+    { name:"Zero" },
+    { name:"Peanut" },
+    { name:"Fishy" },
+    { name:"Striker" },
+    { name:"Aura" },
+    { name:"Boss" },
+    { name:"Grim" }
+  ];
+
+  const STORAGE_PREFIX = "sprite-vault:";
+  const REMOTE = !!CONFIG.API_URL;
+  const POLL_MS = 8000;
+
+  let currentUser = localStorage.getItem(STORAGE_PREFIX + "lastUser") || USERS[0];
+  let currentFilter = "all";
+  let currentFormFilter = "all";
+  let formMode = "caught";
+  let data = defaultData();
+  let pollTimer = null;
+
+  // ---------- data shape helpers ----------
+  function defaultTypeState(){
+    const t = {};
+    TYPES.forEach(ty => { t[ty] = { present:false, level:1 }; });
+    return t;
+  }
+  function defaultData(){
+    const d = {};
+    SPRITES.forEach(s => { d[s.name] = defaultTypeState(); });
+    return d;
+  }
+  function normalizeData(parsed){
+    const d = defaultData();
+    if(!parsed) return d;
+    SPRITES.forEach(s => {
+      const entry = parsed[s.name];
+      if(!entry) return;
+      const looksNew = TYPES.some(ty => entry[ty] && typeof entry[ty] === "object");
+      if(looksNew){
+        TYPES.forEach(ty => {
+          if(entry[ty]){
+            d[s.name][ty].present = !!entry[ty].present;
+            let lvl = parseInt(entry[ty].level,10);
+            d[s.name][ty].level = (lvl>=1 && lvl<=5) ? lvl : 1;
+          }
+        });
+      } else if(entry.type){
+        const ty = TYPES.includes(entry.type) ? entry.type : "Base";
+        d[s.name][ty].present = !!entry.present;
+        let lvl = parseInt(entry.level,10);
+        d[s.name][ty].level = (lvl>=1 && lvl<=5) ? lvl : 1;
+      }
+    });
+    return d;
+  }
+
+  // ---------- local cache ----------
+  function loadLocalUser(user){
+    try{
+      const raw = localStorage.getItem(STORAGE_PREFIX + user);
+      return raw ? normalizeData(JSON.parse(raw)) : defaultData();
+    }catch(e){ return defaultData(); }
+  }
+  function saveLocalUser(user, d){
+    localStorage.setItem(STORAGE_PREFIX + user, JSON.stringify(d));
+  }
+
+  // ---------- remote (Google Sheets via Apps Script) ----------
+  async function apiLoad(user){
+    const url = `${CONFIG.API_URL}?action=load&user=${encodeURIComponent(user)}&t=${Date.now()}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("Network error");
+    const json = await res.json();
+    if(!json.success) throw new Error(json.error || "Load failed");
+    return json.data; // may be null if user has no row yet
+  }
+  async function apiSave(user, d){
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids CORS preflight on Apps Script
+      body: JSON.stringify({ user, data: d })
+    });
+    if(!res.ok) throw new Error("Network error");
+    const json = await res.json();
+    if(!json.success) throw new Error(json.error || "Save failed");
+  }
+
+  // ---------- sync status UI ----------
+  function setSyncStatus(state, text){
+    const el = document.getElementById("syncStatus");
+    const txt = document.getElementById("syncText");
+    el.className = "sync-status " + state;
+    const labels = {
+      local:   "Local only — see README to enable live sync",
+      loading: "Loading…",
+      saving:  "Saving…",
+      synced:  "Synced with Google Sheet",
+      offline: "Offline — changes saved locally"
+    };
+    txt.textContent = text || labels[state] || "";
+  }
+
+  // ---------- load / persist orchestration ----------
+  async function fetchUserData(user){
+    if(!REMOTE) return loadLocalUser(user);
+    setSyncStatus("loading");
+    try{
+      const remote = await apiLoad(user);
+      if(remote){
+        const normalized = normalizeData(remote);
+        saveLocalUser(user, normalized);
+        setSyncStatus("synced");
+        return normalized;
+      } else {
+        const fresh = defaultData();
+        await apiSave(user, fresh);
+        saveLocalUser(user, fresh);
+        setSyncStatus("synced");
+        return fresh;
+      }
+    }catch(e){
+      setSyncStatus("offline");
+      return loadLocalUser(user);
+    }
+  }
+
+  async function persist(user, d){
+    saveLocalUser(user, d);
+    if(!REMOTE) { setSyncStatus("local"); return; }
+    setSyncStatus("saving");
+    try{
+      await apiSave(user, d);
+      setSyncStatus("synced");
+    }catch(e){
+      setSyncStatus("offline");
+    }
+  }
+
+  function startPolling(){
+    if(!REMOTE) return;
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      if(document.visibilityState !== "visible") return;
+      try{
+        const remote = await apiLoad(currentUser);
+        if(remote){
+          data = normalizeData(remote);
+          saveLocalUser(currentUser, data);
+          renderGallery();
+          setSyncStatus("synced");
+        }
+      }catch(e){
+        setSyncStatus("offline");
+      }
+    }, POLL_MS);
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible" && REMOTE){
+      fetchUserData(currentUser).then(d => { data = d; renderGallery(); });
+    }
+  });
+
+  // ---------- rendering ----------
+  function renderUserBar(){
+    const bar = document.getElementById("userBar");
+    bar.innerHTML = "";
+    USERS.forEach(u => {
+      const btn = document.createElement("button");
+      btn.className = "user-tab" + (u === currentUser ? " active" : "");
+      btn.textContent = u;
+      btn.onclick = async () => {
+        currentUser = u;
+        localStorage.setItem(STORAGE_PREFIX + "lastUser", u);
+        renderUserBar();
+        data = await fetchUserData(u);
+        renderGallery();
+      };
+      bar.appendChild(btn);
+    });
+  }
+
+  function computeCounts(){
+    let all = SPRITES.length, caught = 0;
+    const byForm = {};
+    TYPES.forEach(ty => byForm[ty] = 0);
+    SPRITES.forEach(s => {
+      const any = TYPES.some(ty => data[s.name][ty].present);
+      if(any) caught++;
+      TYPES.forEach(ty => { if(data[s.name][ty].present) byForm[ty]++; });
+    });
+    return { all, caught, missing: all - caught, byForm };
+  }
+
+  function updateStat(){
+    let count = 0;
+    SPRITES.forEach(s => TYPES.forEach(ty => { if(data[s.name][ty].present) count++; }));
+    document.getElementById("statCount").textContent = count;
+
+    const c = computeCounts();
+    document.getElementById("countAll").textContent = `(${c.all})`;
+    document.getElementById("countCaught").textContent = `(${c.caught})`;
+    document.getElementById("countMissing").textContent = `(${c.missing})`;
+    TYPES.forEach(ty => {
+      const el = document.getElementById("countForm" + ty);
+      if(el){
+        const val = formMode === "caught" ? c.byForm[ty] : (c.all - c.byForm[ty]);
+        el.textContent = `(${val})`;
+      }
+    });
+  }
+
+  function renderGallery(){
+    const body = document.getElementById("galleryBody");
+    body.innerHTML = "";
+    let shown = 0;
+
+    SPRITES.forEach(sprite => {
+      const entry = data[sprite.name];
+      const anyPresent = TYPES.some(ty => entry[ty].present);
+      const caughtCount = TYPES.filter(ty => entry[ty].present).length;
+
+      const statusMatches =
+        currentFilter === "all" ||
+        (currentFilter === "caught" && anyPresent) ||
+        (currentFilter === "missing" && !anyPresent);
+      const formMatches =
+        currentFormFilter === "all" ||
+        (formMode === "caught" ? entry[currentFormFilter].present : !entry[currentFormFilter].present);
+      if(!statusMatches || !formMatches) return;
+      shown++;
+
+      const tr = document.createElement("tr");
+      tr.className = anyPresent ? "present" : "";
+
+      const tdChar = document.createElement("td");
+      tdChar.innerHTML = `
+        <div class="char-cell">
+          <div class="icon-badge"><img src="${SPRITE_DIR}/${sprite.name.toLowerCase()}.png" alt="${sprite.name}" loading="lazy" onerror="this.style.display='none'"></div>
+          <div>
+            <div class="char-name">${sprite.name}</div>
+            <div class="char-sub">${caughtCount}/4 forms caught</div>
+          </div>
+        </div>`;
+      tr.appendChild(tdChar);
+
+      const tdType = document.createElement("td");
+      const boxes = document.createElement("div");
+      boxes.className = "type-boxes";
+
+      TYPES.forEach(ty => {
+        const state = entry[ty];
+        const box = document.createElement("div");
+        box.className = "type-box" + (state.present ? " on" : "");
+        box.dataset.type = ty;
+
+        const head = document.createElement("div");
+        head.className = "type-box-head";
+        head.innerHTML = `<span class="type-label">${ty}</span><span class="caught-dot"></span>`;
+        box.appendChild(head);
+
+        const pips = document.createElement("div");
+        pips.className = "level-pips";
+        for(let l=1; l<=5; l++){
+          const pip = document.createElement("div");
+          const isSel = state.present && state.level === l;
+          pip.className = "pip" + (isSel ? " sel" : "");
+          pip.textContent = l;
+          pip.onclick = async () => {
+            if(state.present && state.level === l){
+              state.present = false;
+            } else {
+              state.present = true;
+              state.level = l;
+            }
+            renderGallery();
+            await persist(currentUser, data);
+          };
+          pips.appendChild(pip);
+        }
+        box.appendChild(pips);
+        boxes.appendChild(box);
+      });
+
+      tdType.appendChild(boxes);
+      tr.appendChild(tdType);
+      body.appendChild(tr);
+    });
+
+    if(shown === 0){
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 2;
+      td.innerHTML = `<div class="empty-state">No sprites match this filter.</div>`;
+      tr.appendChild(td);
+      body.appendChild(tr);
+    }
+
+    updateStat();
+  }
+
+  // ---------- filter bars ----------
+  document.querySelectorAll(".filter-btn[data-filter]").forEach(btn => {
+    btn.onclick = () => {
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll(".filter-btn[data-filter]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderGallery();
+    };
+  });
+
+  document.querySelectorAll(".filter-btn[data-form]").forEach(btn => {
+    btn.onclick = () => {
+      currentFormFilter = btn.dataset.form;
+      document.querySelectorAll(".filter-btn[data-form]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderGallery();
+    };
+  });
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.onclick = () => {
+      formMode = btn.dataset.mode;
+      document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderGallery();
+    };
+  });
+
+  // ---------- toolbar actions ----------
+  document.getElementById("refreshBtn").onclick = async () => {
+    data = await fetchUserData(currentUser);
+    renderGallery();
+  };
+
+  document.getElementById("exportBtn").onclick = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sprite-vault-${currentUser}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  document.getElementById("importBtn").onclick = () => {
+    document.getElementById("importFile").click();
+  };
+
+  document.getElementById("importFile").onchange = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try{
+        const parsed = JSON.parse(evt.target.result);
+        data = normalizeData(parsed);
+        renderGallery();
+        await persist(currentUser, data);
+      }catch(err){
+        alert("Couldn't read that file — make sure it's a Sprite Vault export.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  document.getElementById("resetBtn").onclick = async () => {
+    if(confirm(`Reset all data for ${currentUser}?`)){
+      data = defaultData();
+      renderGallery();
+      await persist(currentUser, data);
+    }
+  };
+
+  // ---------- boot ----------
+  (async function init(){
+    if(!REMOTE){
+      document.getElementById("footerNote").textContent =
+        "Data is saved locally in this browser. Set CONFIG.API_URL in index.html to sync live via Google Sheets — see README.";
+      setSyncStatus("local");
+    } else {
+      document.getElementById("footerNote").textContent =
+        "Data syncs live with your Google Sheet — every user sees the same collection from any device.";
+    }
+    renderUserBar();
+    data = await fetchUserData(currentUser);
+    renderGallery();
+    startPolling();
+  })();
+})();
+</script>
+
+</body>
+</html>
