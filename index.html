@@ -26,6 +26,8 @@
     --gummy-glow: rgba(224,64,158,.22);
     --galaxy: #7c4fe0;
     --galaxy-glow: rgba(124,79,224,.24);
+    --holofoil: #0ea5b8;
+    --holofoil-glow: rgba(14,165,184,.24);
 
     --present: #17a34a;
     --absent: #d6d5e2;
@@ -184,7 +186,6 @@
     box-shadow:var(--shadow-hard-sm);
   }
   .stat-pill b{ color:var(--present); }
-  .actions{ display:flex; gap:10px; flex-wrap:wrap; }
   .btn{
     font-family:'Inter',sans-serif;
     font-size:12px;
@@ -200,7 +201,6 @@
   }
   .btn:hover{ transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); background:var(--surface-hi); }
   .btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
-  input[type=file]{ display:none; }
 
   /* ---------- Filter bar ---------- */
   .filter-bar{
@@ -385,6 +385,7 @@
   .type-box[data-type="Gold"].on{   background:rgba(200,137,26,.16);  box-shadow:3px 3px 0 var(--gold); }
   .type-box[data-type="Gummy"].on{  background:rgba(224,64,158,.16);  box-shadow:3px 3px 0 var(--gummy); }
   .type-box[data-type="Galaxy"].on{ background:rgba(124,79,224,.17);  box-shadow:3px 3px 0 var(--galaxy); }
+  .type-box[data-type="Holofoil"].on{ background:rgba(14,165,184,.17); box-shadow:3px 3px 0 var(--holofoil); }
   .type-box.on{ transform:translate(-1px,-1px); }
 
   .type-box-head{ display:flex; align-items:center; justify-content:center; gap:7px; }
@@ -400,6 +401,7 @@
   .type-box[data-type="Gold"].on .type-label{ color:var(--gold); }
   .type-box[data-type="Gummy"].on .type-label{ color:var(--gummy); }
   .type-box[data-type="Galaxy"].on .type-label{ color:var(--galaxy); }
+  .type-box[data-type="Holofoil"].on .type-label{ color:var(--holofoil); }
 
   .caught-dot{
     width:15px; height:15px;
@@ -415,6 +417,7 @@
   .type-box[data-type="Gold"].on .caught-dot{ background:var(--gold); color:#fff; }
   .type-box[data-type="Gummy"].on .caught-dot{ background:var(--gummy); color:#fff; }
   .type-box[data-type="Galaxy"].on .caught-dot{ background:var(--galaxy); color:#fff; }
+  .type-box[data-type="Holofoil"].on .caught-dot{ background:var(--holofoil); color:#fff; }
   .type-box.on .caught-dot::after{ content:'✓'; }
 
   .level-pips{ display:flex; gap:5px; justify-content:center; }
@@ -435,6 +438,7 @@
   .type-box[data-type="Gold"] .pip.sel{ background:var(--gold); color:#fff; border-color:var(--ink); }
   .type-box[data-type="Gummy"] .pip.sel{ background:var(--gummy); color:#fff; border-color:var(--ink); }
   .type-box[data-type="Galaxy"] .pip.sel{ background:var(--galaxy); color:#fff; border-color:var(--ink); }
+  .type-box[data-type="Holofoil"] .pip.sel{ background:var(--holofoil); color:#fff; border-color:var(--ink); }
 
   footer{
     max-width:1100px;
@@ -468,8 +472,7 @@
 <div class="sync-bar"><div class="sync-status local" id="syncStatus"><span class="sync-dot"></span><span id="syncText">Local only</span></div></div>
 
 <div class="toolbar">
-  <div class="stat-pill">Collected: <b id="statCount">0</b> / 64</div>
-
+  <div class="stat-pill">Collected: <b id="statCount">0</b> / 80</div>
 </div>
 
 <div class="filter-bar">
@@ -486,6 +489,7 @@
   <button class="filter-btn" data-form="Gold">Gold <span class="filter-count" id="countFormGold"></span></button>
   <button class="filter-btn" data-form="Gummy">Gummy <span class="filter-count" id="countFormGummy"></span></button>
   <button class="filter-btn" data-form="Galaxy">Galaxy <span class="filter-count" id="countFormGalaxy"></span></button>
+  <button class="filter-btn" data-form="Holofoil">Holofoil <span class="filter-count" id="countFormHolofoil"></span></button>
   <span class="form-mode-toggle">
     <button class="mode-btn active" data-mode="caught">Caught</button>
     <button class="mode-btn" data-mode="missing">Missing</button>
@@ -511,13 +515,7 @@
     <tbody id="galleryBody"></tbody>
   </table>
 </div>
-  <div class="actions">
-    <button class="btn" id="refreshBtn">Refresh</button>
-    <button class="btn" id="exportBtn">Export JSON</button>
-    <button class="btn" id="importBtn">Import JSON</button>
-    <input type="file" id="importFile" accept="application/json">
-    <button class="btn" id="resetBtn">Reset user</button>
-  </div>
+
 <footer>
   <span id="footerNote">Data is saved locally in this browser. Set CONFIG.API_URL in index.html to sync live via Google Sheets — see README.</span>
 </footer>
@@ -530,11 +528,11 @@
   // Leave it empty to keep using this browser's local storage only.
   // ---------------------------------------------------------------
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbzzqFRF8BxdJbB1ZmQ_IWp4uZcPyl7YbmlWq0nj3VFlRe8eSXzxPI65uAOtpRe2hHWh/exec" //  e.g. "https://script.google.com/macros/s/AKfycb.../exec"
+    API_URL: ""//"https://script.google.com/macros/s/AKfycbxqxYFk52SKWCofQskMJD0XlonOe7Em0CCnoE-2lhQYytFbz1i59n32FirJPUYimg85hw/exec"  e.g. "https://script.google.com/macros/s/AKfycb.../exec"
   };
 
   const USERS = ["Zedorek","Moky","Saade","DrPo","Joanina"];
-  const TYPES = ["Base","Gold","Gummy","Galaxy"];
+  const TYPES = ["Base","Gold","Gummy","Galaxy","Holofoil"];
   const SPRITE_DIR = "sprites";
   const SPRITES = [
     { name:"Water" },
@@ -874,52 +872,6 @@
       renderGallery();
     };
   });
-
-  // ---------- toolbar actions ----------
-  document.getElementById("refreshBtn").onclick = async () => {
-    data = await fetchUserData(currentUser);
-    renderGallery();
-  };
-
-  document.getElementById("exportBtn").onclick = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sprite-vault-${currentUser}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  document.getElementById("importBtn").onclick = () => {
-    document.getElementById("importFile").click();
-  };
-
-  document.getElementById("importFile").onchange = (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try{
-        const parsed = JSON.parse(evt.target.result);
-        data = normalizeData(parsed);
-        renderGallery();
-        await persist(currentUser, data);
-      }catch(err){
-        alert("Couldn't read that file — make sure it's a Sprite Vault export.");
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
-
-  document.getElementById("resetBtn").onclick = async () => {
-    if(confirm(`Reset all data for ${currentUser}?`)){
-      data = defaultData();
-      renderGallery();
-      await persist(currentUser, data);
-    }
-  };
 
   // ---------- boot ----------
   (async function init(){
