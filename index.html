@@ -663,8 +663,11 @@
         setSyncStatus("synced");
         return normalized;
       } else {
+        // No row for this user yet (or a transient load hiccup) — use blank
+        // defaults locally, but do NOT write them back to the Sheet here.
+        // Writing only happens when the user actually makes a change, so a
+        // failed/empty load can never overwrite real data in the Sheet.
         const fresh = defaultData();
-        await apiSave(user, fresh);
         saveLocalUser(user, fresh);
         setSyncStatus("synced");
         return fresh;
